@@ -22,23 +22,18 @@ defmodule RainMachine.Device do
         {:ok, device}
       
       {:err, reason} ->
-        {:err, reason}
+        {:err, reason} |> IO.inspect(label: "rainmaster fail")
     end
   end
 
   def start_zone(%Device{ip_address: ip_address, token: token}, %{uid: uid} = zone) do
-    cert_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.crt"])
-    key_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.key"])
-
-    options = [ssl: [certfile: cert_path, keyfile: key_path]]
-
     HTTPoison.post(
       "https://#{ip_address}:8080/api/4/zone/#{uid}/start?access_token=#{token}",
       "{\"time\": 1200}",
       [
         {"Content-Type", "application/json"},
       ],
-      options
+      get_options()
     )
     |> case do
       {:ok, %HTTPoison.Response{body: body}} ->
@@ -51,15 +46,13 @@ defmodule RainMachine.Device do
   end
 
   def stop_zone(%Device{ip_address: ip_address, token: token}, %{uid: uid} = zone) do
-    options = [ssl: [certfile: "certs/dev.mergebot.com.crt", keyfile: "certs/dev.mergebot.com.key"]]
-
     HTTPoison.post(
       "https://#{ip_address}:8080/api/4/zone/#{uid}/stop?access_token=#{token}",
       "",
       [
         {"Content-Type", "application/json"},
       ],
-      options
+      get_options()
     )
     |> case do
       {:ok, %HTTPoison.Response{body: body}} ->
@@ -72,15 +65,13 @@ defmodule RainMachine.Device do
   end
 
   def get_token(%{ip_address: ip_address} = device, password) do
-    options = [ssl: [certfile: "certs/dev.mergebot.com.crt", keyfile: "certs/dev.mergebot.com.key"]]
-
     HTTPoison.post(
       "https://#{ip_address}:8080/api/4/auth/login",
       "{\"pwd\": \"#{password}\", \"remember\": 1}",
       [
         {"Content-Type", "application/json"},
       ],
-      options
+      get_options()
     )
     |> case do
       {:ok, %HTTPoison.Response{body: body}} ->
@@ -98,14 +89,13 @@ defmodule RainMachine.Device do
   end
 
   def get_zones(%{ip_address: ip_address, token: token} = device) do
-    options = [redirect: true, ssl: [certfile: "certs/dev.mergebot.com.crt", keyfile: "certs/dev.mergebot.com.key"]]
     %HTTPoison.Response{body: body} =
       HTTPoison.get!(
         "https://#{ip_address}:8080/api/4/zone?access_token=#{token}",
         [
           {"Content-Type", "application/json"},
         ],
-        options
+        get_options()
       )
 
     {:ok, %{"zones" => zones}} = Jason.decode(body)
@@ -114,5 +104,12 @@ defmodule RainMachine.Device do
       %Zone{name: name, uid: uid, state: state}
     end
     %{device | zones: zones}
+  end
+
+  defp get_options do
+    cert_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.crt"]) |> IO.inspect
+    key_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.key"]) |> IO.inspect
+    
+    [ssl: [certfile: cert_path, keyfile: key_path]]
   end
 end
