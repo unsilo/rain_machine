@@ -66,7 +66,7 @@ defmodule RainMachine.Device do
 
   def get_token(%{ip_address: ip_address} = device, password) do
     HTTPoison.post(
-      "https://#{ip_address}:8080/api/4/auth/login",
+      "https://#{ip_address}:8080/api/4/auth/login" |> IO.inspect,
       "{\"pwd\": \"#{password}\", \"remember\": 1}",
       [
         {"Content-Type", "application/json"},
@@ -78,7 +78,7 @@ defmodule RainMachine.Device do
         %{"access_token" => token} = Jason.decode!(body)
         {:ok, %{device | token: token}}
       err ->
-        {:err, reason: inspect(err)}
+        {:err, reason: inspect(err)} |> IO.inspect(label: "rainmachine auth error")
       end
   end
 
@@ -107,8 +107,8 @@ defmodule RainMachine.Device do
   end
 
   defp get_options do
-    cert_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.crt"]) |> IO.inspect
-    key_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.key"]) |> IO.inspect
+    cert_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.crt"])
+    key_path = Path.join(["#{:code.priv_dir(:rain_machine)}", "certs", "dev.mergebot.com.key"])
     
     [ssl: [certfile: cert_path, keyfile: key_path]]
   end
